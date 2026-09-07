@@ -1,10 +1,8 @@
 <!DOCTYPE html>
-
 <html lang="en">
 
 <head>
 
-    <!-- Page settings -->
     <meta charset="UTF-8">
 
     <meta
@@ -13,62 +11,35 @@
     >
 
     <title>
-        Auto Sales - Customer Segmentation
+        Auto Sales Customer Segmentation
     </title>
 
-
-    <!-- CSS -->
     <link
         rel="stylesheet"
-        href="/static/style.css"
+        href="style.css"
     >
 
-
-    <!-- Chart.js -->
-    <script
-        src="https://cdn.jsdelivr.net/npm/chart.js"
-    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 </head>
 
 
 <body>
 
-
-<!-- =====================================================
-     HEADER
-====================================================== -->
-
-<header class="header">
+<div class="container">
 
     <h1>
-        🚗 Auto Sales
+        Auto Sales Customer Segmentation
     </h1>
 
-    <p>
-        Customer Segmentation Dashboard
+    <p class="subtitle">
+        RFM Analysis & KMeans Customer Segmentation
     </p>
 
-</header>
 
+    <!-- FILTERS -->
 
-
-<main class="container">
-
-
-<!-- =====================================================
-     FILTERS
-====================================================== -->
-
-<section class="card">
-
-    <h2>
-        Dashboard Filters
-    </h2>
-
-
-    <div class="filter-grid">
-
+    <div class="filters">
 
         <div>
 
@@ -76,9 +47,7 @@
                 Country
             </label>
 
-            <select
-                id="countryFilter"
-            >
+            <select id="countryFilter">
 
                 <option value="All">
                     All Countries
@@ -89,16 +58,13 @@
         </div>
 
 
-
         <div>
 
             <label>
                 Product Line
             </label>
 
-            <select
-                id="productFilter"
-            >
+            <select id="productFilter">
 
                 <option value="All">
                     All Product Lines
@@ -109,457 +75,235 @@
         </div>
 
 
-
-        <div class="filter-button">
-
-            <button
-                onclick="applyFilters()"
-            >
-                Apply Filters
-            </button>
-
-        </div>
-
-
-    </div>
-
-</section>
-
-
-
-<!-- =====================================================
-     METRICS
-====================================================== -->
-
-<section class="metrics">
-
-
-    <div class="metric-card">
-
-        <div class="metric-icon">
-            🛒
-        </div>
-
-        <div>
-
-            <p>
-                Total Orders
-            </p>
-
-            <h2 id="totalOrders">
-                -
-            </h2>
-
-        </div>
-
-    </div>
-
-
-
-    <div class="metric-card">
-
-        <div class="metric-icon">
-            👥
-        </div>
-
-        <div>
-
-            <p>
-                Total Customers
-            </p>
-
-            <h2 id="totalCustomers">
-                -
-            </h2>
-
-        </div>
-
-    </div>
-
-
-
-    <div class="metric-card">
-
-        <div class="metric-icon">
-            💰
-        </div>
-
-        <div>
-
-            <p>
-                Total Sales
-            </p>
-
-            <h2 id="totalSales">
-                -
-            </h2>
-
-        </div>
-
-    </div>
-
-
-
-    <div class="metric-card">
-
-        <div class="metric-icon">
-            💵
-        </div>
-
-        <div>
-
-            <p>
-                Average Sales
-            </p>
-
-            <h2 id="averageOrder">
-                -
-            </h2>
-
-        </div>
-
-    </div>
-
-
-</section>
-
-
-
-<!-- =====================================================
-     CHARTS
-====================================================== -->
-
-<section class="charts-grid">
-
-
-    <div class="card chart-card">
-
-        <h2>
-            Sales by Country
-        </h2>
-
-        <canvas
-            id="countryChart"
-        ></canvas>
-
-    </div>
-
-
-
-    <div class="card chart-card">
-
-        <h2>
-            Sales by Product Line
-        </h2>
-
-        <canvas
-            id="productChart"
-        ></canvas>
-
-    </div>
-
-
-</section>
-
-
-
-<section class="card chart-card">
-
-    <h2>
-        Sales by Year
-    </h2>
-
-    <canvas
-        id="yearChart"
-    ></canvas>
-
-</section>
-
-
-
-<!-- =====================================================
-     SEGMENTS
-====================================================== -->
-
-<section class="card">
-
-    <h2>
-        Customer Segments
-    </h2>
-
-    <p>
-        RFM-based KMeans customer segmentation
-    </p>
-
-
-    <div
-        id="segmentCards"
-        class="segment-grid"
-    >
-
-        Loading segments...
-
-    </div>
-
-</section>
-
-
-
-<!-- =====================================================
-     CLUSTER PROFILES
-====================================================== -->
-
-<section class="card">
-
-    <h2>
-        Cluster Profiles
-    </h2>
-
-
-    <div class="table-container">
-
-        <table>
-
-            <thead>
-
-                <tr>
-
-                    <th>
-                        Cluster
-                    </th>
-
-                    <th>
-                        Customers
-                    </th>
-
-                    <th>
-                        Avg. Recency
-                    </th>
-
-                    <th>
-                        Avg. Frequency
-                    </th>
-
-                    <th>
-                        Avg. Monetary
-                    </th>
-
-                </tr>
-
-            </thead>
-
-
-            <tbody
-                id="clusterTable"
-            ></tbody>
-
-        </table>
-
-    </div>
-
-</section>
-
-
-
-<!-- =====================================================
-     CUSTOMER LOOKUP
-====================================================== -->
-
-<section class="card">
-
-    <h2>
-        Customer Lookup
-    </h2>
-
-    <p>
-        Search for a customer to see their RFM values and cluster.
-    </p>
-
-
-    <div class="search-box">
-
-        <input
-            type="text"
-            id="customerSearch"
-            placeholder="Enter customer name..."
-        >
-
-
-        <button
-            onclick="searchCustomers()"
-        >
-            Search
+        <button onclick="applyFilters()">
+            Apply Filters
         </button>
 
     </div>
 
 
-    <div class="table-container">
+    <!-- METRICS -->
 
-        <table>
+    <div class="metrics">
 
-            <thead>
+        <div class="metric-card">
 
-                <tr>
+            <h3>
+                Total Orders
+            </h3>
 
-                    <th>
-                        Customer
-                    </th>
+            <p id="totalOrders">
+                0
+            </p>
 
-                    <th>
-                        Recency
-                    </th>
-
-                    <th>
-                        Frequency
-                    </th>
-
-                    <th>
-                        Monetary
-                    </th>
-
-                    <th>
-                        Cluster
-                    </th>
-
-                </tr>
-
-            </thead>
+        </div>
 
 
-            <tbody
-                id="customerTable"
-            ></tbody>
+        <div class="metric-card">
 
-        </table>
+            <h3>
+                Total Customers
+            </h3>
+
+            <p id="totalCustomers">
+                0
+            </p>
+
+        </div>
+
+
+        <div class="metric-card">
+
+            <h3>
+                Total Sales
+            </h3>
+
+            <p id="totalSales">
+                0
+            </p>
+
+        </div>
+
+
+        <div class="metric-card">
+
+            <h3>
+                Average Sales
+            </h3>
+
+            <p id="averageSales">
+                0
+            </p>
+
+        </div>
 
     </div>
 
-</section>
+
+    <!-- CHARTS -->
+
+    <div class="charts">
+
+        <div class="chart-card">
+
+            <h2>
+                Sales by Country
+            </h2>
+
+            <canvas id="countryChart"></canvas>
+
+        </div>
 
 
+        <div class="chart-card">
 
-<!-- =====================================================
-     PREDICTION
-====================================================== -->
+            <h2>
+                Sales by Product Line
+            </h2>
 
-<section class="card prediction-card">
+            <canvas id="productChart"></canvas>
+
+        </div>
+
+
+        <div class="chart-card">
+
+            <h2>
+                Sales by Year
+            </h2>
+
+            <canvas id="yearChart"></canvas>
+
+        </div>
+
+    </div>
+
+
+    <!-- SEGMENTS -->
 
     <h2>
-        🤖 Predict New Customer Segment
+        Customer Segments
     </h2>
 
-    <p>
-        Enter RFM values to predict the customer's cluster.
-    </p>
+    <div
+        id="segments"
+        class="segments"
+    ></div>
 
 
-    <div class="input-grid">
+    <!-- CUSTOMER LOOKUP -->
+
+    <div class="customer-section">
+
+        <h2>
+            Customer Lookup
+        </h2>
+
+        <div class="search-box">
+
+            <input
+                type="text"
+                id="customerSearch"
+                placeholder="Enter customer name"
+            >
+
+            <button onclick="searchCustomers()">
+                Search
+            </button>
+
+        </div>
 
 
-        <div class="input-group">
+        <div class="table-container">
 
-            <label>
-                Recency
-            </label>
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Customer
+                        </th>
+
+                        <th>
+                            Recency
+                        </th>
+
+                        <th>
+                            Frequency
+                        </th>
+
+                        <th>
+                            Monetary
+                        </th>
+
+                        <th>
+                            Cluster
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="customerTable">
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+    <!-- PREDICTION -->
+
+    <div class="prediction">
+
+        <h2>
+            Predict Customer Cluster
+        </h2>
+
+
+        <div class="prediction-inputs">
 
             <input
                 type="number"
                 id="recency"
-                value="100"
-                min="0"
+                placeholder="Recency"
             >
-
-        </div>
-
-
-
-        <div class="input-group">
-
-            <label>
-                Frequency
-            </label>
 
             <input
                 type="number"
                 id="frequency"
-                value="5"
-                min="1"
+                placeholder="Frequency"
             >
-
-        </div>
-
-
-
-        <div class="input-group">
-
-            <label>
-                Monetary
-            </label>
 
             <input
                 type="number"
                 id="monetary"
-                value="5000"
-                min="0"
+                placeholder="Monetary"
             >
+
+            <button onclick="predictCluster()">
+                Predict
+            </button>
 
         </div>
 
 
-    </div>
-
-
-    <button
-        class="predict-button"
-        onclick="predictCluster()"
-    >
-        Predict Customer Segment
-    </button>
-
-
-    <div
-        id="predictionResult"
-        class="prediction-result"
-    >
-
-        <p>
-            Predicted Cluster
-        </p>
-
-        <h2 id="clusterResult">
-            -
-        </h2>
+        <div
+            id="predictionResult"
+            class="prediction-result"
+        ></div>
 
     </div>
 
-</section>
+</div>
 
 
-</main>
-
-
-
-<!-- =====================================================
-     FOOTER
-====================================================== -->
-
-<footer>
-
-    Auto Sales Customer Segmentation
-    |
-    FastAPI + KMeans + RFM
-
-</footer>
-
-
-
-<!-- JAVASCRIPT -->
-
-<script
-    src="/static/script.js"
-></script>
-
+<script src="script.js"></script>
 
 </body>
 
