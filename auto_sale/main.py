@@ -42,7 +42,7 @@ BASE_DIR = os.path.dirname(
 )
 
 FRONTEND_DIR = os.path.abspath(
-    os.path.join(BASE_DIR, "..", "frontend")
+    os.path.join(BASE_DIR, "frontend")
 )
 
 DATA_FILE = os.path.join(
