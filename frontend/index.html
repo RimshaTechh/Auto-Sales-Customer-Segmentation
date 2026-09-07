@@ -1,1 +1,566 @@
+<!DOCTYPE html>
 
+<html lang="en">
+
+<head>
+
+    <!-- Page settings -->
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Auto Sales - Customer Segmentation
+    </title>
+
+
+    <!-- CSS -->
+    <link
+        rel="stylesheet"
+        href="/static/style.css"
+    >
+
+
+    <!-- Chart.js -->
+    <script
+        src="https://cdn.jsdelivr.net/npm/chart.js"
+    ></script>
+
+</head>
+
+
+<body>
+
+
+<!-- =====================================================
+     HEADER
+====================================================== -->
+
+<header class="header">
+
+    <h1>
+        🚗 Auto Sales
+    </h1>
+
+    <p>
+        Customer Segmentation Dashboard
+    </p>
+
+</header>
+
+
+
+<main class="container">
+
+
+<!-- =====================================================
+     FILTERS
+====================================================== -->
+
+<section class="card">
+
+    <h2>
+        Dashboard Filters
+    </h2>
+
+
+    <div class="filter-grid">
+
+
+        <div>
+
+            <label>
+                Country
+            </label>
+
+            <select
+                id="countryFilter"
+            >
+
+                <option value="All">
+                    All Countries
+                </option>
+
+            </select>
+
+        </div>
+
+
+
+        <div>
+
+            <label>
+                Product Line
+            </label>
+
+            <select
+                id="productFilter"
+            >
+
+                <option value="All">
+                    All Product Lines
+                </option>
+
+            </select>
+
+        </div>
+
+
+
+        <div class="filter-button">
+
+            <button
+                onclick="applyFilters()"
+            >
+                Apply Filters
+            </button>
+
+        </div>
+
+
+    </div>
+
+</section>
+
+
+
+<!-- =====================================================
+     METRICS
+====================================================== -->
+
+<section class="metrics">
+
+
+    <div class="metric-card">
+
+        <div class="metric-icon">
+            🛒
+        </div>
+
+        <div>
+
+            <p>
+                Total Orders
+            </p>
+
+            <h2 id="totalOrders">
+                -
+            </h2>
+
+        </div>
+
+    </div>
+
+
+
+    <div class="metric-card">
+
+        <div class="metric-icon">
+            👥
+        </div>
+
+        <div>
+
+            <p>
+                Total Customers
+            </p>
+
+            <h2 id="totalCustomers">
+                -
+            </h2>
+
+        </div>
+
+    </div>
+
+
+
+    <div class="metric-card">
+
+        <div class="metric-icon">
+            💰
+        </div>
+
+        <div>
+
+            <p>
+                Total Sales
+            </p>
+
+            <h2 id="totalSales">
+                -
+            </h2>
+
+        </div>
+
+    </div>
+
+
+
+    <div class="metric-card">
+
+        <div class="metric-icon">
+            💵
+        </div>
+
+        <div>
+
+            <p>
+                Average Sales
+            </p>
+
+            <h2 id="averageOrder">
+                -
+            </h2>
+
+        </div>
+
+    </div>
+
+
+</section>
+
+
+
+<!-- =====================================================
+     CHARTS
+====================================================== -->
+
+<section class="charts-grid">
+
+
+    <div class="card chart-card">
+
+        <h2>
+            Sales by Country
+        </h2>
+
+        <canvas
+            id="countryChart"
+        ></canvas>
+
+    </div>
+
+
+
+    <div class="card chart-card">
+
+        <h2>
+            Sales by Product Line
+        </h2>
+
+        <canvas
+            id="productChart"
+        ></canvas>
+
+    </div>
+
+
+</section>
+
+
+
+<section class="card chart-card">
+
+    <h2>
+        Sales by Year
+    </h2>
+
+    <canvas
+        id="yearChart"
+    ></canvas>
+
+</section>
+
+
+
+<!-- =====================================================
+     SEGMENTS
+====================================================== -->
+
+<section class="card">
+
+    <h2>
+        Customer Segments
+    </h2>
+
+    <p>
+        RFM-based KMeans customer segmentation
+    </p>
+
+
+    <div
+        id="segmentCards"
+        class="segment-grid"
+    >
+
+        Loading segments...
+
+    </div>
+
+</section>
+
+
+
+<!-- =====================================================
+     CLUSTER PROFILES
+====================================================== -->
+
+<section class="card">
+
+    <h2>
+        Cluster Profiles
+    </h2>
+
+
+    <div class="table-container">
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        Cluster
+                    </th>
+
+                    <th>
+                        Customers
+                    </th>
+
+                    <th>
+                        Avg. Recency
+                    </th>
+
+                    <th>
+                        Avg. Frequency
+                    </th>
+
+                    <th>
+                        Avg. Monetary
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody
+                id="clusterTable"
+            ></tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+
+
+<!-- =====================================================
+     CUSTOMER LOOKUP
+====================================================== -->
+
+<section class="card">
+
+    <h2>
+        Customer Lookup
+    </h2>
+
+    <p>
+        Search for a customer to see their RFM values and cluster.
+    </p>
+
+
+    <div class="search-box">
+
+        <input
+            type="text"
+            id="customerSearch"
+            placeholder="Enter customer name..."
+        >
+
+
+        <button
+            onclick="searchCustomers()"
+        >
+            Search
+        </button>
+
+    </div>
+
+
+    <div class="table-container">
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        Customer
+                    </th>
+
+                    <th>
+                        Recency
+                    </th>
+
+                    <th>
+                        Frequency
+                    </th>
+
+                    <th>
+                        Monetary
+                    </th>
+
+                    <th>
+                        Cluster
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody
+                id="customerTable"
+            ></tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+
+
+<!-- =====================================================
+     PREDICTION
+====================================================== -->
+
+<section class="card prediction-card">
+
+    <h2>
+        🤖 Predict New Customer Segment
+    </h2>
+
+    <p>
+        Enter RFM values to predict the customer's cluster.
+    </p>
+
+
+    <div class="input-grid">
+
+
+        <div class="input-group">
+
+            <label>
+                Recency
+            </label>
+
+            <input
+                type="number"
+                id="recency"
+                value="100"
+                min="0"
+            >
+
+        </div>
+
+
+
+        <div class="input-group">
+
+            <label>
+                Frequency
+            </label>
+
+            <input
+                type="number"
+                id="frequency"
+                value="5"
+                min="1"
+            >
+
+        </div>
+
+
+
+        <div class="input-group">
+
+            <label>
+                Monetary
+            </label>
+
+            <input
+                type="number"
+                id="monetary"
+                value="5000"
+                min="0"
+            >
+
+        </div>
+
+
+    </div>
+
+
+    <button
+        class="predict-button"
+        onclick="predictCluster()"
+    >
+        Predict Customer Segment
+    </button>
+
+
+    <div
+        id="predictionResult"
+        class="prediction-result"
+    >
+
+        <p>
+            Predicted Cluster
+        </p>
+
+        <h2 id="clusterResult">
+            -
+        </h2>
+
+    </div>
+
+</section>
+
+
+</main>
+
+
+
+<!-- =====================================================
+     FOOTER
+====================================================== -->
+
+<footer>
+
+    Auto Sales Customer Segmentation
+    |
+    FastAPI + KMeans + RFM
+
+</footer>
+
+
+
+<!-- JAVASCRIPT -->
+
+<script
+    src="/static/script.js"
+></script>
+
+
+</body>
+
+</html>
