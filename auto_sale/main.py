@@ -1,16 +1,6 @@
-# =========================================================
-# AUTO SALES - CUSTOMER SEGMENTATION
-# FASTAPI BACKEND
-# =========================================================
-
-# ---------------------------------------------------------
-# IMPORT LIBRARIES
-# ---------------------------------------------------------
-
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
-
 from pydantic import BaseModel
 
 import pandas as pd
@@ -19,105 +9,231 @@ import joblib
 import os
 
 
-# ---------------------------------------------------------
-# CREATE FASTAPI APP
-# ---------------------------------------------------------
+# =========================================================
+# FASTAPI APP
+# =========================================================
 
 app = FastAPI(
-    title="Auto Sales - Customer Segmentation API",
-    description="RFM Analysis and KMeans Customer Segmentation",
-    version="2.0.0"
+    title="Auto Sales Customer Segmentation API",
+    description="RFM Customer Segmentation using KMeans",
+    version="1.0.0"
 )
 
 
-# ---------------------------------------------------------
-# BASE DIRECTORY
-# ---------------------------------------------------------
+# =========================================================
+# CORS
+# =========================================================
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
+
+
+# =========================================================
+# PATHS
+# =========================================================
 
 BASE_DIR = os.path.dirname(
     os.path.abspath(__file__)
 )
 
+FRONTEND_DIR = os.path.abspath(
+    os.path.join(BASE_DIR, "..", "frontend")
+)
 
-# ---------------------------------------------------------
-# FILE PATHS
-# ---------------------------------------------------------
-
-DATA_PATH = os.path.join(
+DATA_FILE = os.path.join(
     BASE_DIR,
     "Auto Sales data.csv"
 )
 
-MODEL_PATH = os.path.join(
+MODEL_FILE = os.path.join(
     BASE_DIR,
     "kmeans_model.pkl"
 )
 
-SCALER_PATH = os.path.join(
+SCALER_FILE = os.path.join(
     BASE_DIR,
     "scaler.pkl"
 )
 
 
-# ---------------------------------------------------------
-# LOAD DATASET
-# ---------------------------------------------------------
+# =========================================================
+# LOAD DATA
+# =========================================================
 
-if not os.path.exists(DATA_PATH):
+try:
 
-    raise FileNotFoundError(
-        f"Dataset not found: {DATA_PATH}"
-    )
+    df = pd.read_csv(DATA_FILE)
 
+    print("Dataset loaded successfully.")
+    print("Rows:", len(df))
+    print("Columns:", len(df.columns))
 
-df = pd.read_csv(DATA_PATH)
+except Exception as e:
 
-df = df.dropna(how="all")
+    print("ERROR loading dataset:")
+    print(e)
 
-
-# ---------------------------------------------------------
-# LOAD TRAINED MODEL
-# ---------------------------------------------------------
-
-model = None
-
-if os.path.exists(MODEL_PATH):
-
-    model = joblib.load(
-        MODEL_PATH
-    )
+    df = pd.DataFrame()
 
 
-# ---------------------------------------------------------
+# =========================================================
+# LOAD KMEANS MODEL
+# =========================================================
+
+try:
+
+    model = joblib.load(MODEL_FILE)
+
+    print("KMeans model loaded successfully.")
+
+except Exception as e:
+
+    print("ERROR loading KMeans model:")
+    print(e)
+
+    model = None
+
+
+# =========================================================
 # LOAD SCALER
-# ---------------------------------------------------------
+# =========================================================
 
-scaler = None
+try:
 
-if os.path.exists(SCALER_PATH):
+    scaler = joblib.load(SCALER_FILE)
 
-    scaler = joblib.load(
-        SCALER_PATH
+    print("Scaler loaded successfully.")
+
+except Exception as e:
+
+    print("ERROR loading scaler:")
+    print(e)
+
+    scaler = None
+
+
+# =========================================================
+# PREDICTION INPUT
+# =========================================================
+
+class PredictionInput(BaseModel):
+
+    recency: float
+    frequency: float
+    monetary: float
+
+
+# =========================================================
+# HOME
+# =========================================================
+
+@app.get("/")
+def home():
+
+    return {
+        "message": "Auto Sales Customer Segmentation API is running",
+        "dashboard": "/dashboard",
+        "documentation": "/docs"
+    }
+
+
+# =========================================================
+# DASHBOARD
+# =========================================================
+
+@app.get("/dashboard")
+def dashboard():
+
+    index_file = os.path.join(
+        FRONTEND_DIR,
+        "index.html"
     )
 
+    if not os.path.exists(index_file):
 
-# ---------------------------------------------------------
-# STATIC FILES
-# ---------------------------------------------------------
+        raise HTTPException(
+            status_code=404,
+            detail="index.html not found"
+        )
 
-STATIC_DIR = os.path.join(
-    BASE_DIR,
-    "static"
-)
+    return FileResponse(index_file)
 
 
-app.mount(
-    "/static",
-    StaticFiles(
-        directory=STATIC_DIR
-    ),
-    name="static"
-)
+# =========================================================
+# MODEL INFO
+# =========================================================
+
+@app.get("/model-info")
+def model_info():
+
+    return {
+        "model_loaded": model is not None,
+        "scaler_loaded": scaler is not None,
+        "model_type": "KMeans",
+        "clusters": (
+            int(model.n_clusters)
+            if model is not None
+            and hasattr(model, "n_clusters")
+            else None
+        )
+    }
+
+
+# =========================================================
+# COUNTRIES
+# =========================================================
+
+@app.get("/countries")
+def countries():
+
+    if df.empty:
+        return []
+
+    if "COUNTRY" not in df.columns:
+        return []
+
+    result = (
+        df["COUNTRY"]
+        .dropna()
+        .astype(str)
+        .unique()
+        .tolist()
+    )
+
+    result.sort()
+
+    return result
+
+
+# =========================================================
+# PRODUCT LINES
+# =========================================================
+
+@app.get("/product-lines")
+def product_lines():
+
+    if df.empty:
+        return []
+
+    if "PRODUCTLINE" not in df.columns:
+        return []
+
+    result = (
+        df["PRODUCTLINE"]
+        .dropna()
+        .astype(str)
+        .unique()
+        .tolist()
+    )
+
+    result.sort()
+
+    return result
 
 
 # =========================================================
@@ -131,310 +247,219 @@ def filter_data(
 
     filtered = df.copy()
 
-
-    # Country filter
     if (
         country != "All"
-        and country != ""
+        and "COUNTRY" in filtered.columns
     ):
 
         filtered = filtered[
-            filtered["COUNTRY"]
-            == country
+            filtered["COUNTRY"].astype(str)
+            == str(country)
         ]
 
-
-    # Product line filter
     if (
         product_line != "All"
-        and product_line != ""
+        and "PRODUCTLINE" in filtered.columns
     ):
 
         filtered = filtered[
-            filtered["PRODUCTLINE"]
-            == product_line
+            filtered["PRODUCTLINE"].astype(str)
+            == str(product_line)
         ]
-
 
     return filtered
 
 
 # =========================================================
-# RFM CALCULATION
-# =========================================================
-
-def calculate_rfm(data):
-
-    rfm = data.groupby(
-        "CUSTOMERNAME"
-    ).agg({
-
-        "DAYS_SINCE_LASTORDER": "min",
-
-        "ORDERNUMBER": "nunique",
-
-        "SALES": "sum"
-
-    }).reset_index()
-
-
-    rfm.rename(
-        columns={
-            "DAYS_SINCE_LASTORDER": "Recency",
-            "ORDERNUMBER": "Frequency",
-            "SALES": "Monetary"
-        },
-        inplace=True
-    )
-
-
-    # Log transformation
-    rfm["Monetary_log"] = np.log1p(
-        rfm["Monetary"]
-    )
-
-
-    return rfm
-
-
-# =========================================================
-# DASHBOARD PAGE
-# =========================================================
-
-@app.get("/dashboard")
-def dashboard():
-
-    return FileResponse(
-        os.path.join(
-            BASE_DIR,
-            "templates",
-            "index.html"
-        )
-    )
-
-
-# =========================================================
-# HOME
-# =========================================================
-
-@app.get("/")
-def home():
-
-    return {
-        "message":
-            "Auto Sales Customer Segmentation API is running",
-
-        "dashboard":
-            "/dashboard",
-
-        "documentation":
-            "/docs"
-    }
-
-
-# =========================================================
-# MODEL INFORMATION
-# =========================================================
-
-@app.get("/model-info")
-def model_info():
-
-    return {
-
-        "model_loaded":
-            model is not None,
-
-        "scaler_loaded":
-            scaler is not None,
-
-        "model_type":
-            type(model).__name__
-            if model is not None
-            else None
-
-    }
-
-
-# =========================================================
-# SUMMARY WITH FILTERS
+# SUMMARY
 # =========================================================
 
 @app.get("/summary")
 def summary(
-
-    country: str = Query(
-        default="All"
-    ),
-
-    product_line: str = Query(
-        default="All"
-    )
-
+    country: str = "All",
+    product_line: str = "All"
 ):
 
-    # Get filtered data
     filtered = filter_data(
         country,
         product_line
     )
 
+    if filtered.empty:
 
-    # Total orders
-    total_orders = filtered[
-        "ORDERNUMBER"
-    ].nunique()
+        return {
+            "total_orders": 0,
+            "total_customers": 0,
+            "total_sales": 0,
+            "average_sales": 0
+        }
 
+    total_orders = (
+        filtered["ORDERNUMBER"].nunique()
+        if "ORDERNUMBER" in filtered.columns
+        else 0
+    )
 
-    # Total customers
-    total_customers = filtered[
-        "CUSTOMERNAME"
-    ].nunique()
+    total_customers = (
+        filtered["CUSTOMERNAME"].nunique()
+        if "CUSTOMERNAME" in filtered.columns
+        else 0
+    )
 
+    total_sales = (
+        filtered["SALES"].sum()
+        if "SALES" in filtered.columns
+        else 0
+    )
 
-    # Total sales
-    total_sales = filtered[
-        "SALES"
-    ].sum()
-
-
-    # Average sales
-    average_order_value = filtered[
-        "SALES"
-    ].mean()
-
+    average_sales = (
+        filtered["SALES"].mean()
+        if "SALES" in filtered.columns
+        else 0
+    )
 
     return {
 
-        "total_orders":
-            int(total_orders),
+        "total_orders": int(
+            total_orders
+        ),
 
-        "total_customers":
-            int(total_customers),
+        "total_customers": int(
+            total_customers
+        ),
 
-        "total_sales":
-            round(
-                float(total_sales),
-                2
+        "total_sales": round(
+            float(total_sales),
+            2
+        ),
+
+        "average_sales": round(
+            float(average_sales),
+            2
+        )
+    }
+
+
+# =========================================================
+# CREATE RFM
+# =========================================================
+
+def create_rfm(filtered):
+
+    required = [
+        "CUSTOMERNAME",
+        "DAYS_SINCE_LASTORDER",
+        "ORDERNUMBER",
+        "SALES"
+    ]
+
+    for column in required:
+
+        if column not in filtered.columns:
+            return pd.DataFrame()
+
+    rfm = (
+        filtered
+        .groupby("CUSTOMERNAME")
+        .agg(
+
+            Recency=(
+                "DAYS_SINCE_LASTORDER",
+                "min"
             ),
 
-        "average_order_value":
-            round(
-                float(average_order_value),
-                2
+            Frequency=(
+                "ORDERNUMBER",
+                "nunique"
+            ),
+
+            Monetary=(
+                "SALES",
+                "sum"
             )
+        )
+        .reset_index()
+    )
 
-    }
+    rfm["Monetary_log"] = np.log1p(
+        rfm["Monetary"]
+    )
+
+    return rfm
 
 
 # =========================================================
-# COUNTRIES
+# GET CLUSTER PREDICTIONS
 # =========================================================
 
-@app.get("/countries")
-def countries():
+def add_clusters(rfm):
 
-    country_list = sorted(
-        df[
-            "COUNTRY"
+    if rfm.empty:
+
+        return rfm
+
+    if model is None or scaler is None:
+
+        rfm["Cluster"] = 0
+
+        return rfm
+
+    features = rfm[
+        [
+            "Recency",
+            "Frequency",
+            "Monetary_log"
         ]
-        .dropna()
-        .unique()
-        .tolist()
-    )
+    ]
 
-
-    return {
-        "countries":
-            country_list
-    }
-
-
-# =========================================================
-# PRODUCT LINES
-# =========================================================
-
-@app.get("/product-lines")
-def product_lines():
-
-    product_list = sorted(
-        df[
-            "PRODUCTLINE"
-        ]
-        .dropna()
-        .unique()
-        .tolist()
-    )
-
-
-    return {
-        "product_lines":
-            product_list
-    }
-
-
-# =========================================================
-# SEGMENTS
-# =========================================================
-
-@app.get("/segments")
-def segments(
-
-    country: str = Query(
-        default="All"
-    ),
-
-    product_line: str = Query(
-        default="All"
-    )
-
-):
-
-    # Filter data
-    filtered_df = filter_data(
-        country,
-        product_line
-    )
-
-
-    # Calculate RFM
-    rfm = calculate_rfm(
-        filtered_df
-    )
-
-
-    # Predict clusters
-    if (
-        model is not None
-        and scaler is not None
-        and len(rfm) > 0
-    ):
-
-        features = rfm[
-            [
-                "Recency",
-                "Frequency",
-                "Monetary_log"
-            ]
-        ]
-
+    try:
 
         scaled_features = scaler.transform(
             features
         )
 
-
-        rfm["Cluster"] = model.predict(
+        predictions = model.predict(
             scaled_features
         )
 
-    else:
+        rfm["Cluster"] = predictions
+
+    except Exception as e:
+
+        print(
+            "Cluster prediction error:",
+            e
+        )
 
         rfm["Cluster"] = 0
 
+    return rfm
 
-    # Cluster results
+
+# =========================================================
+# CUSTOMER SEGMENTS
+# =========================================================
+
+@app.get("/segments")
+def segments(
+    country: str = "All",
+    product_line: str = "All"
+):
+
+    filtered = filter_data(
+        country,
+        product_line
+    )
+
+    rfm = create_rfm(filtered)
+
+    rfm = add_clusters(rfm)
+
+    if rfm.empty:
+
+        return []
+
     result = []
-
 
     for cluster in sorted(
         rfm["Cluster"].unique()
@@ -444,59 +469,43 @@ def segments(
             rfm["Cluster"] == cluster
         ]
 
-
         result.append({
 
-            "cluster":
-                int(cluster),
+            "cluster": int(cluster),
 
-            "customers":
-                int(
-                    len(cluster_data)
+            "customers": int(
+                len(cluster_data)
+            ),
+
+            "average_recency": round(
+                float(
+                    cluster_data[
+                        "Recency"
+                    ].mean()
                 ),
+                2
+            ),
 
-            "average_recency":
-                round(
-                    float(
-                        cluster_data[
-                            "Recency"
-                        ].mean()
-                    ),
-                    2
+            "average_frequency": round(
+                float(
+                    cluster_data[
+                        "Frequency"
+                    ].mean()
                 ),
+                2
+            ),
 
-            "average_frequency":
-                round(
-                    float(
-                        cluster_data[
-                            "Frequency"
-                        ].mean()
-                    ),
-                    2
+            "average_monetary": round(
+                float(
+                    cluster_data[
+                        "Monetary"
+                    ].mean()
                 ),
-
-            "average_monetary":
-                round(
-                    float(
-                        cluster_data[
-                            "Monetary"
-                        ].mean()
-                    ),
-                    2
-                )
-
+                2
+            )
         })
 
-
-    return {
-
-        "segments":
-            result,
-
-        "total_customers":
-            int(len(rfm))
-
-    }
+    return result
 
 
 # =========================================================
@@ -505,191 +514,165 @@ def segments(
 
 @app.get("/chart-data")
 def chart_data(
-
-    country: str = Query(
-        default="All"
-    ),
-
-    product_line: str = Query(
-        default="All"
-    )
-
+    country: str = "All",
+    product_line: str = "All"
 ):
 
-    filtered_df = filter_data(
+    filtered = filter_data(
         country,
         product_line
     )
 
+    if filtered.empty:
+
+        return {
+            "country_sales": [],
+            "product_sales": [],
+            "year_sales": []
+        }
+
 
     # -----------------------------------------------------
-    # SALES BY COUNTRY
+    # COUNTRY SALES
     # -----------------------------------------------------
 
-    country_sales = (
-        filtered_df
-        .groupby("COUNTRY")["SALES"]
-        .sum()
-        .sort_values(
-            ascending=False
+    country_sales = []
+
+    if (
+        "COUNTRY" in filtered.columns
+        and "SALES" in filtered.columns
+    ):
+
+        grouped = (
+            filtered
+            .groupby("COUNTRY")["SALES"]
+            .sum()
+            .sort_values(
+                ascending=False
+            )
+            .head(10)
         )
-        .head(10)
-    )
+
+        for name, value in grouped.items():
+
+            country_sales.append({
+
+                "name": str(name),
+
+                "sales": round(
+                    float(value),
+                    2
+                )
+            })
 
 
     # -----------------------------------------------------
-    # SALES BY PRODUCT LINE
+    # PRODUCT LINE SALES
     # -----------------------------------------------------
 
-    product_sales = (
-        filtered_df
-        .groupby("PRODUCTLINE")["SALES"]
-        .sum()
-        .sort_values(
-            ascending=False
+    product_sales = []
+
+    if (
+        "PRODUCTLINE" in filtered.columns
+        and "SALES" in filtered.columns
+    ):
+
+        grouped = (
+            filtered
+            .groupby("PRODUCTLINE")["SALES"]
+            .sum()
+            .sort_values(
+                ascending=False
+            )
         )
-    )
+
+        for name, value in grouped.items():
+
+            product_sales.append({
+
+                "name": str(name),
+
+                "sales": round(
+                    float(value),
+                    2
+                )
+            })
 
 
     # -----------------------------------------------------
-    # SALES BY YEAR
+    # YEAR SALES
     # -----------------------------------------------------
 
-    if "YEAR_ID" in filtered_df.columns:
+    year_sales = []
 
-        yearly_sales = (
-            filtered_df
+    if (
+        "YEAR_ID" in filtered.columns
+        and "SALES" in filtered.columns
+    ):
+
+        grouped = (
+            filtered
             .groupby("YEAR_ID")["SALES"]
             .sum()
             .sort_index()
         )
 
+        for year, value in grouped.items():
 
-        years = [
-            str(x)
-            for x in yearly_sales.index
-        ]
+            year_sales.append({
 
+                "year": str(year),
 
-        year_sales = [
-            round(
-                float(x),
-                2
-            )
-            for x in yearly_sales.values
-        ]
-
-    else:
-
-        years = []
-
-        year_sales = []
+                "sales": round(
+                    float(value),
+                    2
+                )
+            })
 
 
     return {
 
-        "country_names":
-            country_sales.index.tolist(),
-
         "country_sales":
-            [
-                round(
-                    float(x),
-                    2
-                )
-                for x in country_sales.values
-            ],
-
-        "product_names":
-            product_sales.index.tolist(),
+            country_sales,
 
         "product_sales":
-            [
-                round(
-                    float(x),
-                    2
-                )
-                for x in product_sales.values
-            ],
-
-        "years":
-            years,
+            product_sales,
 
         "year_sales":
             year_sales
-
     }
 
 
 # =========================================================
-# CUSTOMER LOOKUP
+# CUSTOMER SEARCH
 # =========================================================
 
 @app.get("/customers")
 def customers(
-
-    search: str = Query(
-        default=""
-    ),
-
-    country: str = Query(
-        default="All"
-    ),
-
-    product_line: str = Query(
-        default="All"
-    )
-
+    search: str = "",
+    country: str = "All",
+    product_line: str = "All"
 ):
 
-    # Filter data
-    filtered_df = filter_data(
+    filtered = filter_data(
         country,
         product_line
     )
 
+    rfm = create_rfm(filtered)
 
-    # RFM
-    rfm = calculate_rfm(
-        filtered_df
-    )
+    rfm = add_clusters(rfm)
 
+    if rfm.empty:
 
-    # Cluster
-    if (
-        model is not None
-        and scaler is not None
-        and len(rfm) > 0
-    ):
-
-        features = rfm[
-            [
-                "Recency",
-                "Frequency",
-                "Monetary_log"
-            ]
-        ]
+        return []
 
 
-        scaled_features = scaler.transform(
-            features
-        )
-
-
-        rfm["Cluster"] = model.predict(
-            scaled_features
-        )
-
-    else:
-
-        rfm["Cluster"] = 0
-
-
-    # Search
     if search:
 
         rfm = rfm[
             rfm["CUSTOMERNAME"]
+            .astype(str)
             .str.contains(
                 search,
                 case=False,
@@ -698,66 +681,39 @@ def customers(
         ]
 
 
-    # Maximum 50 customers
     rfm = rfm.head(50)
 
-
-    customers_list = []
-
+    result = []
 
     for _, row in rfm.iterrows():
 
-        customers_list.append({
+        result.append({
 
-            "customer":
-                row["CUSTOMERNAME"],
+            "customer": str(
+                row["CUSTOMERNAME"]
+            ),
 
-            "recency":
-                round(
-                    float(
-                        row["Recency"]
-                    ),
-                    2
-                ),
+            "recency": round(
+                float(row["Recency"]),
+                2
+            ),
 
-            "frequency":
-                int(
-                    row["Frequency"]
-                ),
+            "frequency": round(
+                float(row["Frequency"]),
+                2
+            ),
 
-            "monetary":
-                round(
-                    float(
-                        row["Monetary"]
-                    ),
-                    2
-                ),
+            "monetary": round(
+                float(row["Monetary"]),
+                2
+            ),
 
-            "cluster":
-                int(
-                    row["Cluster"]
-                )
-
+            "cluster": int(
+                row["Cluster"]
+            )
         })
 
-
-    return {
-        "customers":
-            customers_list
-    }
-
-
-# =========================================================
-# CUSTOMER INPUT
-# =========================================================
-
-class CustomerInput(BaseModel):
-
-    recency: float
-
-    frequency: float
-
-    monetary: float
+    return result
 
 
 # =========================================================
@@ -766,80 +722,69 @@ class CustomerInput(BaseModel):
 
 @app.post("/predict")
 def predict(
-    customer: CustomerInput
+    data: PredictionInput
 ):
 
-    # Check model
     if model is None:
 
-        return {
-            "error":
-                "KMeans model not found."
-        }
+        raise HTTPException(
+            status_code=500,
+            detail="KMeans model not loaded."
+        )
 
-
-    # Check scaler
     if scaler is None:
 
+        raise HTTPException(
+            status_code=500,
+            detail="Scaler not loaded."
+        )
+
+
+    monetary_log = np.log1p(
+        data.monetary
+    )
+
+
+    input_data = pd.DataFrame(
+
+        [[
+            data.recency,
+            data.frequency,
+            monetary_log
+        ]],
+
+        columns=[
+            "Recency",
+            "Frequency",
+            "Monetary_log"
+        ]
+    )
+
+
+    try:
+
+        scaled_data = scaler.transform(
+            input_data
+        )
+
+        prediction = model.predict(
+            scaled_data
+        )
+
         return {
-            "error":
-                "Scaler not found."
+
+            "predicted_cluster":
+                int(prediction[0])
+
         }
 
 
-    # Log transform
-    monetary_log = np.log1p(
-        customer.monetary
-    )
+    except Exception as e:
 
+        raise HTTPException(
 
-    # Create dataframe
-    input_data = pd.DataFrame({
+            status_code=500,
 
-        "Recency": [
-            customer.recency
-        ],
+            detail=str(e)
 
-        "Frequency": [
-            customer.frequency
-        ],
-
-        "Monetary_log": [
-            monetary_log
-        ]
-
-    })
-
-
-    # Scale
-    scaled_data = scaler.transform(
-        input_data
-    )
-
-
-    # Prediction
-    prediction = model.predict(
-        scaled_data
-    )
-
-
-    predicted_cluster = int(
-        prediction[0]
-    )
-
-
-    return {
-
-        "predicted_cluster":
-            predicted_cluster,
-
-        "recency":
-            customer.recency,
-
-        "frequency":
-            customer.frequency,
-
-        "monetary":
-            customer.monetary
-
-    }
+        )
