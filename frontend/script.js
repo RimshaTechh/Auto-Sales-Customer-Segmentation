@@ -1,5 +1,12 @@
 // =========================================================
-// GLOBAL VARIABLES
+// API URL
+// =========================================================
+
+const API_URL = window.location.origin;
+
+
+// =========================================================
+// CHART VARIABLES
 // =========================================================
 
 let countryChart = null;
@@ -8,172 +15,34 @@ let yearChart = null;
 
 
 // =========================================================
-// GET FILTER VALUES
-// =========================================================
-
-function getFilters() {
-
-    const country =
-        document.getElementById(
-            "countryFilter"
-        ).value;
-
-
-    const product =
-        document.getElementById(
-            "productFilter"
-        ).value;
-
-
-    return {
-        country: country,
-        product: product
-    };
-
-}
-
-
-// =========================================================
-// LOAD SUMMARY
-// =========================================================
-
-async function loadSummary() {
-
-    try {
-
-        const filters =
-            getFilters();
-
-
-        const url =
-            "/summary?country=" +
-            encodeURIComponent(
-                filters.country
-            ) +
-            "&product_line=" +
-            encodeURIComponent(
-                filters.product
-            );
-
-
-        const response =
-            await fetch(url);
-
-
-        const data =
-            await response.json();
-
-
-        document.getElementById(
-            "totalOrders"
-        ).textContent =
-            Number(
-                data.total_orders
-            ).toLocaleString();
-
-
-        document.getElementById(
-            "totalCustomers"
-        ).textContent =
-            Number(
-                data.total_customers
-            ).toLocaleString();
-
-
-        document.getElementById(
-            "totalSales"
-        ).textContent =
-            "$" +
-            Number(
-                data.total_sales
-            ).toLocaleString();
-
-
-        document.getElementById(
-            "averageOrder"
-        ).textContent =
-            "$" +
-            Number(
-                data.average_order_value
-            ).toLocaleString(
-                undefined,
-                {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                }
-            );
-
-
-    } catch (error) {
-
-        console.error(
-            "Summary error:",
-            error
-        );
-
-    }
-
-}
-
-
-// =========================================================
 // LOAD COUNTRIES
 // =========================================================
 
 async function loadCountries() {
 
-    try {
+    const response = await fetch(
+        `${API_URL}/countries`
+    );
 
-        const response =
-            await fetch(
-                "/countries"
-            );
+    const countries = await response.json();
 
-
-        const data =
-            await response.json();
-
-
-        const select =
-            document.getElementById(
-                "countryFilter"
-            );
-
-
-        data.countries.forEach(
-            function (country) {
-
-                const option =
-                    document.createElement(
-                        "option"
-                    );
-
-
-                option.value =
-                    country;
-
-
-                option.textContent =
-                    country;
-
-
-                select.appendChild(
-                    option
-                );
-
-            }
+    const select =
+        document.getElementById(
+            "countryFilter"
         );
 
+    countries.forEach(country => {
 
-    } catch (error) {
+        const option =
+            document.createElement("option");
 
-        console.error(
-            "Country error:",
-            error
-        );
+        option.value = country;
 
-    }
+        option.textContent = country;
 
+        select.appendChild(option);
+
+    });
 }
 
 
@@ -183,58 +52,99 @@ async function loadCountries() {
 
 async function loadProductLines() {
 
-    try {
+    const response = await fetch(
+        `${API_URL}/product-lines`
+    );
 
-        const response =
-            await fetch(
-                "/product-lines"
-            );
+    const products = await response.json();
 
-
-        const data =
-            await response.json();
-
-
-        const select =
-            document.getElementById(
-                "productFilter"
-            );
-
-
-        data.product_lines.forEach(
-            function (product) {
-
-                const option =
-                    document.createElement(
-                        "option"
-                    );
-
-
-                option.value =
-                    product;
-
-
-                option.textContent =
-                    product;
-
-
-                select.appendChild(
-                    option
-                );
-
-            }
+    const select =
+        document.getElementById(
+            "productFilter"
         );
 
+    products.forEach(product => {
 
-    } catch (error) {
+        const option =
+            document.createElement("option");
 
-        console.error(
-            "Product error:",
-            error
-        );
+        option.value = product;
 
-    }
+        option.textContent = product;
 
+        select.appendChild(option);
+
+    });
+}
+
+
+// =========================================================
+// GET FILTERS
+// =========================================================
+
+function getFilters() {
+
+    const country =
+        document.getElementById(
+            "countryFilter"
+        ).value;
+
+    const product =
+        document.getElementById(
+            "productFilter"
+        ).value;
+
+    return {
+
+        country:
+            encodeURIComponent(country),
+
+        product:
+            encodeURIComponent(product)
+
+    };
+}
+
+
+// =========================================================
+// LOAD SUMMARY
+// =========================================================
+
+async function loadSummary() {
+
+    const filters = getFilters();
+
+    const response = await fetch(
+
+        `${API_URL}/summary?country=${filters.country}&product_line=${filters.product}`
+
+    );
+
+    const data = await response.json();
+
+
+    document.getElementById(
+        "totalOrders"
+    ).textContent =
+        data.total_orders.toLocaleString();
+
+
+    document.getElementById(
+        "totalCustomers"
+    ).textContent =
+        data.total_customers.toLocaleString();
+
+
+    document.getElementById(
+        "totalSales"
+    ).textContent =
+        data.total_sales.toLocaleString();
+
+
+    document.getElementById(
+        "averageSales"
+    ).textContent =
+        data.average_sales.toLocaleString();
 }
 
 
@@ -244,165 +154,66 @@ async function loadProductLines() {
 
 async function loadSegments() {
 
-    try {
+    const filters = getFilters();
 
-        const filters =
-            getFilters();
+    const response = await fetch(
 
+        `${API_URL}/segments?country=${filters.country}&product_line=${filters.product}`
 
-        const url =
-            "/segments?country=" +
-            encodeURIComponent(
-                filters.country
-            ) +
-            "&product_line=" +
-            encodeURIComponent(
-                filters.product
-            );
+    );
 
+    const data = await response.json();
 
-        const response =
-            await fetch(url);
-
-
-        const data =
-            await response.json();
-
-
-        const cards =
-            document.getElementById(
-                "segmentCards"
-            );
-
-
-        const table =
-            document.getElementById(
-                "clusterTable"
-            );
-
-
-        cards.innerHTML = "";
-
-        table.innerHTML = "";
-
-
-        if (
-            !data.segments ||
-            data.segments.length === 0
-        ) {
-
-            cards.innerHTML =
-                "<p>No segments found.</p>";
-
-            return;
-
-        }
-
-
-        data.segments.forEach(
-            function (segment) {
-
-                // Create card
-                const card =
-                    document.createElement(
-                        "div"
-                    );
-
-
-                card.className =
-                    "segment-card";
-
-
-                card.innerHTML = `
-
-                    <h3>
-                        Cluster ${segment.cluster}
-                    </h3>
-
-                    <div class="customers">
-                        ${segment.customers}
-                    </div>
-
-                    <p>
-                        Customers
-                    </p>
-
-                    <p>
-                        Recency:
-                        ${segment.average_recency}
-                    </p>
-
-                    <p>
-                        Frequency:
-                        ${segment.average_frequency}
-                    </p>
-
-                    <p>
-                        Monetary:
-                        $${Number(
-                            segment.average_monetary
-                        ).toLocaleString()}
-                    </p>
-
-                `;
-
-
-                cards.appendChild(
-                    card
-                );
-
-
-                // Create table row
-                const row =
-                    document.createElement(
-                        "tr"
-                    );
-
-
-                row.innerHTML = `
-
-                    <td>
-                        Cluster ${segment.cluster}
-                    </td>
-
-                    <td>
-                        ${segment.customers}
-                    </td>
-
-                    <td>
-                        ${segment.average_recency}
-                    </td>
-
-                    <td>
-                        ${segment.average_frequency}
-                    </td>
-
-                    <td>
-                        $${Number(
-                            segment.average_monetary
-                        ).toLocaleString()}
-                    </td>
-
-                `;
-
-
-                table.appendChild(
-                    row
-                );
-
-            }
+    const container =
+        document.getElementById(
+            "segments"
         );
 
+    container.innerHTML = "";
 
-    } catch (error) {
 
-        console.error(
-            "Segment error:",
-            error
-        );
+    data.forEach(segment => {
 
-    }
+        const card =
+            document.createElement("div");
 
+        card.className =
+            "segment-card";
+
+
+        card.innerHTML = `
+
+            <h3>
+                Cluster ${segment.cluster}
+            </h3>
+
+            <p>
+                Customers:
+                <strong>
+                    ${segment.customers}
+                </strong>
+            </p>
+
+            <p>
+                Avg Recency:
+                ${segment.average_recency}
+            </p>
+
+            <p>
+                Avg Frequency:
+                ${segment.average_frequency}
+            </p>
+
+            <p>
+                Avg Monetary:
+                ${segment.average_monetary}
+            </p>
+
+        `;
+
+        container.appendChild(card);
+
+    });
 }
 
 
@@ -412,212 +223,190 @@ async function loadSegments() {
 
 async function loadCharts() {
 
-    try {
+    const filters = getFilters();
 
-        const filters =
-            getFilters();
+    const response = await fetch(
 
+        `${API_URL}/chart-data?country=${filters.country}&product_line=${filters.product}`
 
-        const url =
-            "/chart-data?country=" +
-            encodeURIComponent(
-                filters.country
-            ) +
-            "&product_line=" +
-            encodeURIComponent(
-                filters.product
-            );
+    );
 
+    const data = await response.json();
 
-        const response =
-            await fetch(url);
 
+    // COUNTRY CHART
 
-        const data =
-            await response.json();
-
-
-        // Destroy previous charts
-        if (countryChart) {
-
-            countryChart.destroy();
-
-        }
-
-
-        if (productChart) {
-
-            productChart.destroy();
-
-        }
-
-
-        if (yearChart) {
-
-            yearChart.destroy();
-
-        }
-
-
-        // -------------------------------------------------
-        // COUNTRY CHART
-        // -------------------------------------------------
-
-        countryChart =
-            new Chart(
-
-                document.getElementById(
-                    "countryChart"
-                ),
-
-                {
-
-                    type: "bar",
-
-                    data: {
-
-                        labels:
-                            data.country_names,
-
-                        datasets: [
-
-                            {
-
-                                label:
-                                    "Sales",
-
-                                data:
-                                    data.country_sales
-
-                            }
-
-                        ]
-
-                    },
-
-                    options: {
-
-                        responsive: true,
-
-                        maintainAspectRatio: false
-
-                    }
-
-                }
-
-            );
-
-
-        // -------------------------------------------------
-        // PRODUCT CHART
-        // -------------------------------------------------
-
-        productChart =
-            new Chart(
-
-                document.getElementById(
-                    "productChart"
-                ),
-
-                {
-
-                    type: "doughnut",
-
-                    data: {
-
-                        labels:
-                            data.product_names,
-
-                        datasets: [
-
-                            {
-
-                                label:
-                                    "Sales",
-
-                                data:
-                                    data.product_sales
-
-                            }
-
-                        ]
-
-                    },
-
-                    options: {
-
-                        responsive: true,
-
-                        maintainAspectRatio: false
-
-                    }
-
-                }
-
-            );
-
-
-        // -------------------------------------------------
-        // YEAR CHART
-        // -------------------------------------------------
-
-        yearChart =
-            new Chart(
-
-                document.getElementById(
-                    "yearChart"
-                ),
-
-                {
-
-                    type: "line",
-
-                    data: {
-
-                        labels:
-                            data.years,
-
-                        datasets: [
-
-                            {
-
-                                label:
-                                    "Sales",
-
-                                data:
-                                    data.year_sales,
-
-                                tension:
-                                    0.3
-
-                            }
-
-                        ]
-
-                    },
-
-                    options: {
-
-                        responsive: true,
-
-                        maintainAspectRatio: false
-
-                    }
-
-                }
-
-            );
-
-
-    } catch (error) {
-
-        console.error(
-            "Chart error:",
-            error
+    const countryLabels =
+        data.country_sales.map(
+            item => item.name
         );
+
+    const countryValues =
+        data.country_sales.map(
+            item => item.sales
+        );
+
+
+    if (countryChart) {
+
+        countryChart.destroy();
 
     }
 
+
+    countryChart = new Chart(
+
+        document.getElementById(
+            "countryChart"
+        ),
+
+        {
+
+            type: "bar",
+
+            data: {
+
+                labels: countryLabels,
+
+                datasets: [
+
+                    {
+
+                        label: "Sales",
+
+                        data: countryValues
+
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                responsive: true
+
+            }
+
+        }
+
+    );
+
+
+    // PRODUCT CHART
+
+    const productLabels =
+        data.product_sales.map(
+            item => item.name
+        );
+
+    const productValues =
+        data.product_sales.map(
+            item => item.sales
+        );
+
+
+    if (productChart) {
+
+        productChart.destroy();
+
+    }
+
+
+    productChart = new Chart(
+
+        document.getElementById(
+            "productChart"
+        ),
+
+        {
+
+            type: "doughnut",
+
+            data: {
+
+                labels: productLabels,
+
+                datasets: [
+
+                    {
+
+                        data: productValues
+
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                responsive: true
+
+            }
+
+        }
+
+    );
+
+
+    // YEAR CHART
+
+    const yearLabels =
+        data.year_sales.map(
+            item => item.year
+        );
+
+    const yearValues =
+        data.year_sales.map(
+            item => item.sales
+        );
+
+
+    if (yearChart) {
+
+        yearChart.destroy();
+
+    }
+
+
+    yearChart = new Chart(
+
+        document.getElementById(
+            "yearChart"
+        ),
+
+        {
+
+            type: "line",
+
+            data: {
+
+                labels: yearLabels,
+
+                datasets: [
+
+                    {
+
+                        label: "Sales",
+
+                        data: yearValues
+
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                responsive: true
+
+            }
+
+        }
+
+    );
 }
 
 
@@ -627,17 +416,13 @@ async function loadCharts() {
 
 async function applyFilters() {
 
-    // Update metrics
     await loadSummary();
 
-
-    // Update segmentation
     await loadSegments();
 
-
-    // Update charts
     await loadCharts();
 
+    await searchCustomers();
 }
 
 
@@ -648,125 +433,71 @@ async function applyFilters() {
 async function searchCustomers() {
 
     const search =
-        document.getElementById(
-            "customerSearch"
-        ).value;
+        encodeURIComponent(
 
-
-    const filters =
-        getFilters();
-
-
-    try {
-
-        const url =
-            "/customers?search=" +
-            encodeURIComponent(
-                search
-            ) +
-            "&country=" +
-            encodeURIComponent(
-                filters.country
-            ) +
-            "&product_line=" +
-            encodeURIComponent(
-                filters.product
-            );
-
-
-        const response =
-            await fetch(url);
-
-
-        const data =
-            await response.json();
-
-
-        const table =
             document.getElementById(
-                "customerTable"
-            );
+                "customerSearch"
+            ).value
 
-
-        table.innerHTML = "";
-
-
-        if (
-            !data.customers ||
-            data.customers.length === 0
-        ) {
-
-            table.innerHTML = `
-
-                <tr>
-
-                    <td colspan="5">
-                        No customers found.
-                    </td>
-
-                </tr>
-
-            `;
-
-            return;
-
-        }
-
-
-        data.customers.forEach(
-            function (customer) {
-
-                const row =
-                    document.createElement(
-                        "tr"
-                    );
-
-
-                row.innerHTML = `
-
-                    <td>
-                        ${customer.customer}
-                    </td>
-
-                    <td>
-                        ${customer.recency}
-                    </td>
-
-                    <td>
-                        ${customer.frequency}
-                    </td>
-
-                    <td>
-                        $${Number(
-                            customer.monetary
-                        ).toLocaleString()}
-                    </td>
-
-                    <td>
-                        Cluster
-                        ${customer.cluster}
-                    </td>
-
-                `;
-
-
-                table.appendChild(
-                    row
-                );
-
-            }
         );
 
 
-    } catch (error) {
+    const filters = getFilters();
 
-        console.error(
-            "Customer error:",
-            error
+
+    const response = await fetch(
+
+        `${API_URL}/customers?search=${search}&country=${filters.country}&product_line=${filters.product}`
+
+    );
+
+
+    const customers =
+        await response.json();
+
+
+    const table =
+        document.getElementById(
+            "customerTable"
         );
 
-    }
+    table.innerHTML = "";
 
+
+    customers.forEach(customer => {
+
+        const row =
+            document.createElement("tr");
+
+
+        row.innerHTML = `
+
+            <td>
+                ${customer.customer}
+            </td>
+
+            <td>
+                ${customer.recency}
+            </td>
+
+            <td>
+                ${customer.frequency}
+            </td>
+
+            <td>
+                ${customer.monetary}
+            </td>
+
+            <td>
+                ${customer.cluster}
+            </td>
+
+        `;
+
+
+        table.appendChild(row);
+
+    });
 }
 
 
@@ -800,113 +531,72 @@ async function predictCluster() {
         );
 
 
-    // Validation
     if (
         isNaN(recency) ||
         isNaN(frequency) ||
         isNaN(monetary)
     ) {
 
-        alert(
-            "Please enter valid values."
-        );
+        document.getElementById(
+            "predictionResult"
+        ).textContent =
+            "Please enter all values.";
 
         return;
-
     }
 
 
-    if (
-        recency < 0 ||
-        frequency <= 0 ||
-        monetary < 0
-    ) {
+    const response = await fetch(
 
-        alert(
-            "Please enter valid positive values."
-        );
+        `${API_URL}/predict`,
 
-        return;
+        {
 
-    }
+            method: "POST",
 
+            headers: {
 
-    try {
+                "Content-Type":
+                    "application/json"
 
-        const response =
-            await fetch(
-                "/predict",
-                {
+            },
 
-                    method: "POST",
+            body: JSON.stringify({
 
-                    headers: {
+                recency: recency,
 
-                        "Content-Type":
-                            "application/json"
+                frequency: frequency,
 
-                    },
+                monetary: monetary
 
-                    body:
-                        JSON.stringify({
-
-                            recency:
-                                recency,
-
-                            frequency:
-                                frequency,
-
-                            monetary:
-                                monetary
-
-                        })
-
-                }
-            );
-
-
-        const data =
-            await response.json();
-
-
-        if (data.error) {
-
-            alert(
-                data.error
-            );
-
-            return;
+            })
 
         }
 
+    );
+
+
+    const data =
+        await response.json();
+
+
+    if (!response.ok) {
 
         document.getElementById(
             "predictionResult"
-        ).style.display =
-            "block";
-
-
-        document.getElementById(
-            "clusterResult"
         ).textContent =
-            "Cluster " +
-            data.predicted_cluster;
+            data.detail ||
+            "Prediction failed.";
 
-
-    } catch (error) {
-
-        console.error(
-            "Prediction error:",
-            error
-        );
-
-
-        alert(
-            "Could not connect to FastAPI."
-        );
-
+        return;
     }
 
+
+    document.getElementById(
+        "predictionResult"
+    ).textContent =
+
+        `Predicted Cluster: ${data.predicted_cluster}`;
 }
 
 
@@ -914,32 +604,37 @@ async function predictCluster() {
 // INITIALIZE DASHBOARD
 // =========================================================
 
-async function initializeDashboard() {
-
-    await loadCountries();
-
-    await loadProductLines();
-
-    await loadSummary();
-
-    await loadSegments();
-
-    await loadCharts();
-
-    await searchCustomers();
-
-}
-
-
-// =========================================================
-// START
-// =========================================================
-
 document.addEventListener(
-    "DOMContentLoaded",
-    function () {
 
-        initializeDashboard();
+    "DOMContentLoaded",
+
+    async () => {
+
+        try {
+
+            await loadCountries();
+
+            await loadProductLines();
+
+            await loadSummary();
+
+            await loadSegments();
+
+            await loadCharts();
+
+            await searchCustomers();
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "Dashboard loading error:",
+                error
+            );
+
+        }
 
     }
+
 );
