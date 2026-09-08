@@ -15,21 +15,51 @@ let yearChart = null;
 
 
 // =========================================================
+// SAFE API REQUEST
+// =========================================================
+
+async function apiFetch(endpoint) {
+
+    const response = await fetch(
+        `${API_URL}${endpoint}`
+    );
+
+    const contentType =
+        response.headers.get("content-type") || "";
+
+    if (!response.ok) {
+
+        const text = await response.text();
+
+        throw new Error(
+            `API error ${response.status} for ${endpoint}: ${text.substring(0, 200)}`
+        );
+    }
+
+    if (!contentType.includes("application/json")) {
+
+        const text = await response.text();
+
+        throw new Error(
+            `Expected JSON from ${endpoint}, but received: ${text.substring(0, 200)}`
+        );
+    }
+
+    return await response.json();
+}
+
+
+// =========================================================
 // LOAD COUNTRIES
 // =========================================================
 
 async function loadCountries() {
 
-    const response = await fetch(
-        `${API_URL}/countries`
-    );
-
-    const countries = await response.json();
+    const countries =
+        await apiFetch("/countries");
 
     const select =
-        document.getElementById(
-            "countryFilter"
-        );
+        document.getElementById("countryFilter");
 
     countries.forEach(country => {
 
@@ -37,7 +67,6 @@ async function loadCountries() {
             document.createElement("option");
 
         option.value = country;
-
         option.textContent = country;
 
         select.appendChild(option);
@@ -52,16 +81,11 @@ async function loadCountries() {
 
 async function loadProductLines() {
 
-    const response = await fetch(
-        `${API_URL}/product-lines`
-    );
-
-    const products = await response.json();
+    const products =
+        await apiFetch("/product-lines");
 
     const select =
-        document.getElementById(
-            "productFilter"
-        );
+        document.getElementById("productFilter");
 
     products.forEach(product => {
 
@@ -69,7 +93,6 @@ async function loadProductLines() {
             document.createElement("option");
 
         option.value = product;
-
         option.textContent = product;
 
         select.appendChild(option);
@@ -85,22 +108,16 @@ async function loadProductLines() {
 function getFilters() {
 
     const country =
-        document.getElementById(
-            "countryFilter"
-        ).value;
+        document.getElementById("countryFilter").value;
 
     const product =
-        document.getElementById(
-            "productFilter"
-        ).value;
+        document.getElementById("productFilter").value;
 
     return {
 
-        country:
-            encodeURIComponent(country),
+        country: encodeURIComponent(country),
 
-        product:
-            encodeURIComponent(product)
+        product: encodeURIComponent(product)
 
     };
 }
@@ -114,37 +131,22 @@ async function loadSummary() {
 
     const filters = getFilters();
 
-    const response = await fetch(
+    const data =
+        await apiFetch(
+            `/summary?country=${filters.country}&product_line=${filters.product}`
+        );
 
-        `${API_URL}/summary?country=${filters.country}&product_line=${filters.product}`
+    document.getElementById("totalOrders").textContent =
+        Number(data.total_orders).toLocaleString();
 
-    );
+    document.getElementById("totalCustomers").textContent =
+        Number(data.total_customers).toLocaleString();
 
-    const data = await response.json();
+    document.getElementById("totalSales").textContent =
+        Number(data.total_sales).toLocaleString();
 
-
-    document.getElementById(
-        "totalOrders"
-    ).textContent =
-        data.total_orders.toLocaleString();
-
-
-    document.getElementById(
-        "totalCustomers"
-    ).textContent =
-        data.total_customers.toLocaleString();
-
-
-    document.getElementById(
-        "totalSales"
-    ).textContent =
-        data.total_sales.toLocaleString();
-
-
-    document.getElementById(
-        "averageSales"
-    ).textContent =
-        data.average_sales.toLocaleString();
+    document.getElementById("averageSales").textContent =
+        Number(data.average_sales).toLocaleString();
 }
 
 
@@ -156,30 +158,22 @@ async function loadSegments() {
 
     const filters = getFilters();
 
-    const response = await fetch(
-
-        `${API_URL}/segments?country=${filters.country}&product_line=${filters.product}`
-
-    );
-
-    const data = await response.json();
-
-    const container =
-        document.getElementById(
-            "segments"
+    const data =
+        await apiFetch(
+            `/segments?country=${filters.country}&product_line=${filters.product}`
         );
 
-    container.innerHTML = "";
+    const container =
+        document.getElementById("segments");
 
+    container.innerHTML = "";
 
     data.forEach(segment => {
 
         const card =
             document.createElement("div");
 
-        card.className =
-            "segment-card";
-
+        card.className = "segment-card";
 
         card.innerHTML = `
 
@@ -225,16 +219,15 @@ async function loadCharts() {
 
     const filters = getFilters();
 
-    const response = await fetch(
-
-        `${API_URL}/chart-data?country=${filters.country}&product_line=${filters.product}`
-
-    );
-
-    const data = await response.json();
+    const data =
+        await apiFetch(
+            `/chart-data?country=${filters.country}&product_line=${filters.product}`
+        );
 
 
+    // =====================================================
     // COUNTRY CHART
+    // =====================================================
 
     const countryLabels =
         data.country_sales.map(
@@ -246,19 +239,15 @@ async function loadCharts() {
             item => item.sales
         );
 
-
     if (countryChart) {
 
         countryChart.destroy();
 
     }
 
-
     countryChart = new Chart(
 
-        document.getElementById(
-            "countryChart"
-        ),
+        document.getElementById("countryChart"),
 
         {
 
@@ -293,7 +282,9 @@ async function loadCharts() {
     );
 
 
+    // =====================================================
     // PRODUCT CHART
+    // =====================================================
 
     const productLabels =
         data.product_sales.map(
@@ -305,19 +296,15 @@ async function loadCharts() {
             item => item.sales
         );
 
-
     if (productChart) {
 
         productChart.destroy();
 
     }
 
-
     productChart = new Chart(
 
-        document.getElementById(
-            "productChart"
-        ),
+        document.getElementById("productChart"),
 
         {
 
@@ -350,7 +337,9 @@ async function loadCharts() {
     );
 
 
+    // =====================================================
     // YEAR CHART
+    // =====================================================
 
     const yearLabels =
         data.year_sales.map(
@@ -362,19 +351,15 @@ async function loadCharts() {
             item => item.sales
         );
 
-
     if (yearChart) {
 
         yearChart.destroy();
 
     }
 
-
     yearChart = new Chart(
 
-        document.getElementById(
-            "yearChart"
-        ),
+        document.getElementById("yearChart"),
 
         {
 
@@ -416,13 +401,26 @@ async function loadCharts() {
 
 async function applyFilters() {
 
-    await loadSummary();
+    try {
 
-    await loadSegments();
+        await loadSummary();
 
-    await loadCharts();
+        await loadSegments();
 
-    await searchCustomers();
+        await loadCharts();
+
+        await searchCustomers();
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Filter loading error:",
+            error
+        );
+
+    }
 }
 
 
@@ -434,41 +432,25 @@ async function searchCustomers() {
 
     const search =
         encodeURIComponent(
-
-            document.getElementById(
-                "customerSearch"
-            ).value
-
+            document.getElementById("customerSearch").value
         );
-
 
     const filters = getFilters();
 
-
-    const response = await fetch(
-
-        `${API_URL}/customers?search=${search}&country=${filters.country}&product_line=${filters.product}`
-
-    );
-
-
     const customers =
-        await response.json();
-
-
-    const table =
-        document.getElementById(
-            "customerTable"
+        await apiFetch(
+            `/customers?search=${search}&country=${filters.country}&product_line=${filters.product}`
         );
 
-    table.innerHTML = "";
+    const table =
+        document.getElementById("customerTable");
 
+    table.innerHTML = "";
 
     customers.forEach(customer => {
 
         const row =
             document.createElement("tr");
-
 
         row.innerHTML = `
 
@@ -494,7 +476,6 @@ async function searchCustomers() {
 
         `;
 
-
         table.appendChild(row);
 
     });
@@ -509,27 +490,18 @@ async function predictCluster() {
 
     const recency =
         Number(
-            document.getElementById(
-                "recency"
-            ).value
+            document.getElementById("recency").value
         );
-
 
     const frequency =
         Number(
-            document.getElementById(
-                "frequency"
-            ).value
+            document.getElementById("frequency").value
         );
-
 
     const monetary =
         Number(
-            document.getElementById(
-                "monetary"
-            ).value
+            document.getElementById("monetary").value
         );
-
 
     if (
         isNaN(recency) ||
@@ -545,58 +517,69 @@ async function predictCluster() {
         return;
     }
 
+    try {
 
-    const response = await fetch(
+        const response =
+            await fetch(
+                `${API_URL}/predict`,
+                {
 
-        `${API_URL}/predict`,
+                    method: "POST",
 
-        {
+                    headers: {
 
-            method: "POST",
+                        "Content-Type":
+                            "application/json"
 
-            headers: {
+                    },
 
-                "Content-Type":
-                    "application/json"
+                    body: JSON.stringify({
 
-            },
+                        recency: recency,
 
-            body: JSON.stringify({
+                        frequency: frequency,
 
-                recency: recency,
+                        monetary: monetary
 
-                frequency: frequency,
+                    })
 
-                monetary: monetary
+                }
+            );
 
-            })
+        const data =
+            await response.json();
 
+        if (!response.ok) {
+
+            document.getElementById(
+                "predictionResult"
+            ).textContent =
+                data.detail ||
+                "Prediction failed.";
+
+            return;
         }
-
-    );
-
-
-    const data =
-        await response.json();
-
-
-    if (!response.ok) {
 
         document.getElementById(
             "predictionResult"
         ).textContent =
-            data.detail ||
-            "Prediction failed.";
+            `Predicted Cluster: ${data.predicted_cluster}`;
 
-        return;
     }
 
+    catch (error) {
 
-    document.getElementById(
-        "predictionResult"
-    ).textContent =
+        console.error(
+            "Prediction error:",
+            error
+        );
 
-        `Predicted Cluster: ${data.predicted_cluster}`;
+        document.getElementById(
+            "predictionResult"
+        ).textContent =
+            "Prediction failed.";
+
+    }
 }
 
 
@@ -605,9 +588,7 @@ async function predictCluster() {
 // =========================================================
 
 document.addEventListener(
-
     "DOMContentLoaded",
-
     async () => {
 
         try {
@@ -636,5 +617,4 @@ document.addEventListener(
         }
 
     }
-
 );
