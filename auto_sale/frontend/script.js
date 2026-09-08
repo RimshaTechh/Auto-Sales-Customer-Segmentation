@@ -2,7 +2,7 @@
 // API URL
 // =========================================================
 
-const API_URL = window.location.origin;
+const API_URL = "https://auto-sales-customer-segmentation-production.up.railway.app/";
 
 
 // =========================================================
