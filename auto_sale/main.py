@@ -571,35 +571,44 @@ def chart_data(
             })
 
 
-    # -----------------------------------------------------
-    # YEAR SALES
-    # -----------------------------------------------------
+# -----------------------------------------------------
+# YEAR SALES
+# -----------------------------------------------------
 
-    year_sales = []
+year_sales = []
 
-    if (
-        "YEAR_ID" in filtered.columns
-        and "SALES" in filtered.columns
-    ):
+if (
+    "ORDERDATE" in filtered.columns
+    and "SALES" in filtered.columns
+):
 
-        grouped = (
-            filtered
-            .groupby("YEAR_ID")["SALES"]
-            .sum()
-            .sort_index()
-        )
+    filtered_copy = filtered.copy()
 
-        for year, value in grouped.items():
+    filtered_copy["YEAR"] = pd.to_datetime(
+        filtered_copy["ORDERDATE"],
+        dayfirst=True,
+        errors="coerce"
+    ).dt.year
 
-            year_sales.append({
+    grouped = (
+        filtered_copy
+        .dropna(subset=["YEAR"])
+        .groupby("YEAR")["SALES"]
+        .sum()
+        .sort_index()
+    )
 
-                "year": str(year),
+    for year, value in grouped.items():
 
-                "sales": round(
-                    float(value),
-                    2
-                )
-            })
+        year_sales.append({
+
+            "year": str(int(year)),
+
+            "sales": round(
+                float(value),
+                2
+            )
+        })
 
 
     return {
