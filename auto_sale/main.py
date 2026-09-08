@@ -1,6 +1,5 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 import pandas as pd
@@ -39,10 +38,6 @@ app.add_middleware(
 
 BASE_DIR = os.path.dirname(
     os.path.abspath(__file__)
-)
-
-FRONTEND_DIR = os.path.abspath(
-    os.path.join(BASE_DIR, "frontend")
 )
 
 DATA_FILE = os.path.join(
@@ -137,31 +132,8 @@ def home():
 
     return {
         "message": "Auto Sales Customer Segmentation API is running",
-        "dashboard": "/dashboard",
         "documentation": "/docs"
     }
-
-
-# =========================================================
-# DASHBOARD
-# =========================================================
-
-@app.get("/dashboard")
-def dashboard():
-
-    index_file = os.path.join(
-        FRONTEND_DIR,
-        "index.html"
-    )
-
-    if not os.path.exists(index_file):
-
-        raise HTTPException(
-            status_code=404,
-            detail="index.html not found"
-        )
-
-    return FileResponse(index_file)
 
 
 # =========================================================
