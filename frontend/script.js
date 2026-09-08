@@ -2,7 +2,7 @@
 // API URL
 // =========================================================
 
-const API_URL = "https://auto-sales-customer-segmentation-production.up.railway.app/";
+const API_URL = "https://auto-sales-customer-segmentation.up.railway.app/";
 
 
 // =========================================================
